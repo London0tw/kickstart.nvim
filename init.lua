@@ -157,6 +157,10 @@ vim.api.nvim_create_autocmd('VimEnter', {
   end,
 })
 
+vim.api.nvim_create_user_command('Wq', function()
+  vim.cmd 'wq'
+end, {})
+
 vim.api.nvim_create_user_command('Mcc', function()
   vim.cmd '!mcc'
 end, {})
