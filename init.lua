@@ -74,6 +74,8 @@ vim.o.inccommand = 'split'
 -- Show which line your cursor is on
 vim.o.cursorline = true
 
+vim.o.rnu = true
+
 -- Minimal number of screen lines to keep above and below the cursor.
 vim.o.scrolloff = 10
 
@@ -92,7 +94,7 @@ vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
 -- Diagnostic keymaps
 
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
-
+vim.keymap.set('i', 'jj', '<Esc>', { desc = 'Exit insert mode' })
 -- Exit terminal mode in the builtin terminal with a shortcut that is a bit easier
 -- for people to discover. Otherwise, you normally need to press <C-\><C-n>, which
 -- is not what someone will guess without a bit more experience.
@@ -122,6 +124,11 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 -- vim.keymap.set("n", "<C-S-j>", "<C-w>J", { desc = "Move window to the lower" })
 -- vim.keymap.set("n", "<C-S-k>", "<C-w>K", { desc = "Move window to the upper" })
 
+vim.keymap.set('n', '<C-y>', ':Neotree<CR>', { desc = 'Reload neotree' })
+vim.keymap.set('n', '<C-v>', ':Neotree toggle<CR>', { desc = 'Toggle neotree' })
+vim.keymap.set('n', '<C-s>', ':LspRestart<CR>', { desc = 'Restart LSP' })
+vim.keymap.set('i', '<C-del>', '<S-Right><C-W>', { desc = 'Delete word forward' })
+vim.keymap.set('x', 'p', '"_dP', { noremap = true, silent = true })
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
 
@@ -167,7 +174,7 @@ end, {})
 
 vim.opt.fillchars = { fold = ' ' }
 vim.opt.foldmethod = 'indent'
-vim.opt.foldenable = false
+vim.opt.foldenable = true
 vim.opt.foldlevel = 99
 
 -- [[ Install `lazy.nvim` plugin manager ]]
@@ -201,7 +208,7 @@ vim.lsp.config.pyright = {
           '.venv/lib/python3.13',
           '.venv/lib/python3.13/site-packages',
         },
-        typeCheckingMode = 'basic',
+        typeCheckingMode = 'off',
         autoSearchPaths = true,
         useLibraryCodeForTypes = true,
       },
@@ -216,6 +223,12 @@ vim.lsp.config.lua_ls = {
       },
     },
   },
+}
+vim.lsp.config.ts_ls = {
+  on_attach = function(client, bufnr)
+    client.server_capabilities.documentFormattingProvider = false
+    client.server_capabilities.documentRangeFormattingProvider = false
+  end,
 }
 -- [[ Configure and install plugins ]]
 --
@@ -239,6 +252,11 @@ require('lazy').setup({
   -- Use `opts = {}` to automatically pass options to a plugin's `setup()` function, forcing the plugin to be loaded.
   --
   {
+    'folke/todo-comments.nvim',
+    dependencies = { 'nvim-lua/plenary.nvim' },
+    opts = {},
+  },
+  {
     'nvim-neo-tree/neo-tree.nvim',
     branch = 'v3.x',
     dependencies = {
@@ -246,7 +264,18 @@ require('lazy').setup({
       'MunifTanjim/nui.nvim',
       'nvim-tree/nvim-web-devicons',
     },
+    opts = {
+      filesystem = {
+        filtered_items = {
+          visible = true,
+        },
+      },
+    },
+    hide_by_name = {
+      '.git',
+    },
   },
+  { 'windwp/nvim-autopairs', event = 'InsertEnter', config = true },
   {
     'antosha417/nvim-lsp-file-operations',
     dependencies = {
@@ -775,7 +804,7 @@ require('lazy').setup({
       },
     },
     opts = {
-      notify_on_error = false,
+      notify_on_error = true,
       format_on_save = function(bufnr)
         -- Disable "format_on_save lsp_fallback" for languages that don't
         -- have a well standardized coding style. You can add additional
@@ -797,6 +826,10 @@ require('lazy').setup({
         --
         -- You can use 'stop_after_first' to run the first available formatter from the list
         javascript = { 'prettierd', 'prettier', stop_after_first = true },
+
+        typescript = { 'prettier' },
+        typescriptreact = { 'prettier' },
+        javascriptreact = { 'prettier' },
       },
     },
   },
