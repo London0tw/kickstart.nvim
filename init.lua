@@ -42,7 +42,7 @@ vim.o.undofile = true
 
 -- Case-insensitive searching UNLESS \C or one or more capital letters in the search term
 vim.o.ignorecase = true
-vim.o.smartcase = true
+vim.o.smartcase = false
 
 -- Keep signcolumn on by default
 vim.o.signcolumn = 'yes'
@@ -126,12 +126,22 @@ vim.keymap.set('n', '<C-k>', '<C-w><C-k>', { desc = 'Move focus to the upper win
 
 vim.keymap.set('n', '<C-y>', ':Neotree<CR>', { desc = 'Reload neotree' })
 vim.keymap.set('n', '<C-v>', ':Neotree toggle<CR>', { desc = 'Toggle neotree' })
-vim.keymap.set('n', '<C-s>', ':LspRestart<CR>', { desc = 'Restart LSP' })
-vim.keymap.set('i', '<C-del>', '<S-Right><C-W>', { desc = 'Delete word forward' })
+vim.keymap.set('n', '<C-s>', ':wa<CR>', { desc = 'Save' })
+vim.keymap.set('i', '<C-s>', ':wa<CR>', { desc = 'Save' })
+vim.keymap.set('n', '<C-d>', ':LspRestart<CR>', { desc = 'Restart LSP' })
+vim.keymap.set('i', '<C-del>', '<Esc>ldwi', { desc = 'Delete word forward' })
 vim.keymap.set('x', 'p', '"_dP', { noremap = true, silent = true })
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
-
+vim.api.nvim_create_autocmd('BufWritePre', {
+  callback = function(args)
+    local file = args.match
+    local dir = vim.fn.fnamemodify(file, ':p:h')
+    if vim.fn.isdirectory(dir) == 0 then
+      vim.fn.mkdir(dir, 'p')
+    end
+  end,
+})
 -- Highlight when yanking (copying) text
 --  Try it with `yap` in normal mode
 --  See `:help vim.hl.on_yank()`
@@ -154,16 +164,24 @@ vim.api.nvim_create_autocmd('VimEnter', {
     local argv = vim.fn.argv()
     if #argv == 1 then
       local arg = argv[1]
-      local offset = ':p'
-      local status, res = pcall(vim.fn.isdirectory, arg)
-      if not res == 1 then
-        offset = ':p:h'
+
+      local is_dir = vim.fn.isdirectory(arg) == 1
+      local target
+
+      if is_dir then
+        target = vim.fn.fnamemodify(arg, ':p')
+      else
+        target = vim.fn.fnamemodify(arg, ':p:h')
       end
-      pcall(vim.cmd, 'cd ' .. vim.fn.fnamemodify(arg, offset))
+
+      if vim.fn.isdirectory(target) == 0 then
+        vim.fn.mkdir(target, 'p')
+      end
+
+      pcall(vim.cmd, 'cd ' .. target)
     end
   end,
 })
-
 vim.api.nvim_create_user_command('Wq', function()
   vim.cmd 'wq'
 end, {})
@@ -268,6 +286,9 @@ require('lazy').setup({
       filesystem = {
         filtered_items = {
           visible = true,
+          never_show = {
+            '__pycache__',
+          },
         },
       },
     },
@@ -722,26 +743,9 @@ require('lazy').setup({
       local servers = {
         clangd = {},
         -- gopls = {},
-        pyright = {
-          settings = {
-            python = {
-              venvPath = '.', -- путь до директории, где лежит .venv
-              venv = '.venv',
-              analysis = {
-                extraPaths = {
-                  '.venv/lib/python3.13',
-                  '.venv/lib/python3.13/site-packages',
-                },
-                typeCheckingMode = 'basic',
-                autoSearchPaths = true,
-                useLibraryCodeForTypes = true,
-              },
-            },
-          },
-          root_dir = require('lspconfig.util').root_pattern('.git', 'pyproject.toml', 'setup.py', 'requirements.txt'),
-        },
+        pyright = {},
         -- omnisharp = {},
-        -- rust_analyzer = {},
+        rust_analyzer = {},
         -- ... etc. See `:help lspconfig-all` for a list of all the pre-configured LSPs
         --
         -- Some languages (like typescript) have entire language plugins that can be useful:
@@ -814,7 +818,7 @@ require('lazy').setup({
           return nil
         else
           return {
-            timeout_ms = 500,
+            timeout_ms = 900,
             lsp_format = 'fallback',
           }
         end
